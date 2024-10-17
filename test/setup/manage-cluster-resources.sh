@@ -83,7 +83,7 @@ function create_user(){
     openssl req -new -key ${rbac_user_dir}/info.key -subj "/CN=${username}${csr_groups}" -out ${rbac_user_dir}/info.csr
     
     # Dump CSR to base64 for certificate signing request 
-    export CSR_CLIENT=$(cat ${rbac_user_dir}/info.csr | base64 -w 0)
+    export CSR_CLIENT=$(base64 -e ${rbac_user_dir}/info.csr | tr -d '\n\r')
     
     # Create CSR object file using a template
     cat ${SCRIPT_DIR}/${CONFIG_DIR}/CertificateSigningRequest.tpl.yaml | sed "s/<name>/${username}/ ; s/<csr-base64>/${CSR_CLIENT}/" > ${rbac_user_dir}/info_csr.yaml
@@ -101,11 +101,12 @@ function create_user(){
     kubectl config view --raw -o jsonpath='{..cluster.certificate-authority-data}' | base64 --decode >  ${rbac_user_dir}/info-ca.crt
 
     # Configure kubeconfig file for user
-    local ca_crt=$(cat  ${rbac_user_dir}/info-ca.crt | base64 -w 0)
+    local ca_crt=$(base64 -e  ${rbac_user_dir}/info-ca.crt | tr -d '\n\r')
     local context=$(kubectl config current-context)
     local cluster_endpoint=$(kubectl config view -o jsonpath='{.clusters[?(@.name=="'"$context"'")].cluster.server}')
-    local crt=$(cat  ${rbac_user_dir}/info.crt | base64 -w 0)
-    local key=$(cat ${rbac_user_dir}/info.key | base64 -w 0)
+    local crt=$(base64 -e  ${rbac_user_dir}/info.crt | tr -d '\n\r')
+    local key=$(base64 -e ${rbac_user_dir}/info.key | tr -d '\n\r')
+
     
     cat ${SCRIPT_DIR}/${CONFIG_DIR}/kubeconfig-template.yaml | sed "s#<context>#${CONTEXT}# ;
     s#<cluster-name>#${context}# ;
@@ -115,8 +116,8 @@ function create_user(){
     s#<namespace>#${namespace}# ;
     s#<user.crt>#${crt}# ; 
     s#<user.key>#${key}#" > ${rbac_user_dir}/kubeconfig
-
 }
+
 
 case $SCRIPT_ACTION in
     deploy)
